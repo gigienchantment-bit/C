@@ -78,3 +78,17 @@ int main(void) {
 
     return 0;
 }
+
+// 🌟 视频&下面的内容于2025年1月3日更新（弹幕在更新视频后被我清理过一次了）
+// command line tools安装命令（可以不安装Xcode，下载慢可以尝试换网络或者热点）：xcode-select --install
+// Visual Studio Code软件下载地址：https://code.visualstudio.com/
+// 关闭C/C++扩展的设置：Debug Shortcut
+// 调试替换program（注意外层有双引号）：${fileDirname}/${fileBasenameNoExtension}
+// 开箱即用：https://www.123pan.com/s/5FJqjv-DSGYd.html
+// ===补充说明的文章===
+// 🌟 支持C/C++11：关于Mac版本的Visual Studio Code如何支持C/C++11
+// ===分割线===
+// ❗️扩展设置和Visual Studio Code设置只需要设置一次
+// ❗️调试和编译功能跟随文件夹，因此如果在新的文件夹中需要编译和调试，可以去云盘上再下载一次模板
+// ❗️上面所有的命令、链接等不要手动输入，直接复制，手动输入可能存在问题
+// ❗️希望各位可以的话看完视频，视频后面有常见问题Q&A
