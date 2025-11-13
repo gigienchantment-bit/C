@@ -4,3 +4,11 @@
 collect2: error: ld returned 1 exit status
 
 gcc nm.c driver.c -Wall -Wextra -std=c99 -o nm
+
+[hy25163@it106297 num]$ gcc nm.c driver.c -Wall -Wextra -std=c99 -o nm
+nm.c:353:6: warning: ‘test’ defined but not used [-Wunused-function]
+ void test(void){
+      ^~~~
+nm.c:314:6: warning: ‘solve’ defined but not used [-Wunused-function]
+ bool solve(int seed){
+      ^~~~~
