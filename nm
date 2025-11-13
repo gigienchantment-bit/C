@@ -12,3 +12,7 @@ nm.c:353:6: warning: ‘test’ defined but not used [-Wunused-function]
 nm.c:314:6: warning: ‘solve’ defined but not used [-Wunused-function]
  bool solve(int seed){
       ^~~~~
+
+[hy25163@it106297 num]$ ./nm
+nm: driver.c:13: main: Assertion `take(&b, (pair){1,0,2,0})' failed.
+Aborted (core dumped)
