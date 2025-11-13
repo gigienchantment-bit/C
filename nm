@@ -2,3 +2,5 @@
 /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o: In function `_start':
 (.text+0x24): undefined reference to `main'
 collect2: error: ld returned 1 exit status
+
+gcc nm.c driver.c -Wall -Wextra -std=c99 -o nm
