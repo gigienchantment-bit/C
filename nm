@@ -1,3 +1,4 @@
-cd "/Users/gigi/Desktop/C/numMatch/"
-gcc -std=c99 -Wall -Wextra nm.c driver.c -o nm
-./nm
+[hy25163@it106297 num]$ cd "/home/hy25163/c/num/" && gcc nm.c -o nm && "/home/hy25163/c/num/"nm
+/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o: In function `_start':
+(.text+0x24): undefined reference to `main'
+collect2: error: ld returned 1 exit status
