@@ -3,6 +3,12 @@ gcc nm.c driver.c -Wall -Wextra -std=c99 -o nm
 
 zip nm.zip nm.c mydefs.h
 ./check.sh
+
+zip nm.zip nm.c mydefs.h
+chmod +x check.sh
+./check.sh
+
+bash check.sh
 --
 #include "nm.h"  
 #include <stdlib.h> 
