@@ -2,6 +2,7 @@ make extension
 ./extension   # 只要安静运行，无输出、无 assertion，就说明 OK
 
 zip nm.zip nm.c mydefs.h ext.c ext_mydefs.h
+./check.sh
 
 [hy25163@it106166 num]$ zip nm.zip nm.c mydefs.h ext.c ext_mydefs.h
 updating: nm.c (deflated 73%)
