@@ -1,14 +1,283 @@
 gcc nm.c driver.c -Wall -Wextra -std=c99 -o nm
 ./nm
 --
-[hy25163@it106297 num]$ gcc nm.c driver.c -Wall -Wextra -std=c99 -o nm
-mnm.c:353:6: warning: ‘test’ defined but not used [-Wunused-function]
- void test(void){
-      ^~~~
-nm.c:314:6: warning: ‘solve’ defined but not used [-Wunused-function]
- bool solve(int seed){
-      ^~~~~
-[hy25163@it106297 num]$ ./nm
-nm: driver.c:13: main: Assertion `take(&b, (pair){1,0,2,0})' failed.
-Aborted (core dumped)
+#include "nm.h"  
+#include <stdlib.h> 
+#include <assert.h>
+static unsigned int state[344];
+static unsigned int idx;
+void my_srand(unsigned int seed)
+{
+    if(seed==0){
+        seed=1;
+    }
+    state[0]=seed%2147483647u;
+    for(int i=1;i<31;++i){
+        long long prev=(long long)(int)state[i-1];
+        long long next=(prev*16807)%2147483647;
+        state[i]=(unsigned int)next;
+    }
+    state[31]=state[0];
+    state[32]=state[1];
+    state[33]=state[2];
+    for(int i=34;i<344;++i){
+        state[i]=state[i-3]+state[i-31];
+    }
+    idx=0;
+}
+int my_rand(void)
+{
+    unsigned int val=state[(idx+313)%344]+state[(idx+341)%344];
+    state[idx]=val;
+    int result=(int)(val>>1);
+    idx=(idx+1)%344;
+    return result;
+}
+// static unsigned int state[344];
+// static unsigned int idx;
+bool in(int r,int c)
+{
+    return r>=0&&r<H&&c>=0&&c<W;
+}
+//dr两个格子行坐标之差 dc两个格子列坐标之差
+//相邻8个格子
+bool ad8(int dr,int dc)
+{
+    return (dr>=-1&&dr<=1&&dc>=-1&&dc<=1&&!(dc==0&&dr==0));
+}
+//方向
+void di(int *x)
+{
+    if(*x>0){
+        *x=1;
+    }
+    else if(*x<0){
+        *x=-1;
+    }
+}
+void dir(int *dr,int *dc)
+{
+    di(dr);
+    di(dc);
+}
+//相等或和为 10
+bool match(int x,int y)
+{
+    int ten=10;
+    return (x==y)||(x+y==ten);
+}
+//8个方向在同一直线上
+//dr=0同一行、dc=0同一列、dr=dc对角线、dr=-dc对角线
+bool line8(int r1,int c1,int r2,int c2,int *odr,int *odc)
+{
+    int dr = r2 - r1;
+    int dc = c2 - c1;
+    if(dr==0&&dc==0){
+        return false;
+    }
+    if(!(dr==0||dc==0||dr==dc||dr==-dc)){
+        return false;
+    }
+    dir(&dr,&dc);
+    if(odr){
+        *odr=dr;
+    }
+    if(odc){
+        *odc=dc;
+    }
+    return true;
+}
+//共线&中间全为0
+bool path(board*b,int r1,int c1,int r2,int c2)
+{
+    int dr,dc;
+    if(!line8(r1,c1,r2,c2,&dr,&dc)){
+        return false;
+    }//不共线就停
+    int r=r1+dr,c=c1+dc;
+    while(!(r==r2&&c==c2)){
+        if(b->a[r][c]!=0){
+            return false;
+        }//路过的格子不为0就停
+        r=r+dr;
+        c=c+dc;
+    }
+    return true;
+}
+bool check(board*b)
+{
+    for(int r=0;r<H;++r){
+        for(int c=0;c<W;++c){
+            if(b->a[r][c]!=0){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+bool same(const board *a,const board *b)
+{
+    for(int r=0;r<H;r++){
+        for(int c=0;c<W;c++){
+            if(a->a[r][c]!=b->a[r][c]){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+bool solve(int seed)
+{
+    board queue[MAXLIST];
+    int front=0,back=0;
+    queue[back++]=randfill(seed);
+    while(front<back){
+        board b=queue[front++];
+        if(check(&b)){
+            return true;
+        }
+        for (int i=0;i<H*W;++i) {
+            int x1=i%W;
+            int y1=i/W;
+            if (b.a[y1][x1]!= 0) {
+                for (int j =i+1; j <H* W; ++j) {
+                    int x2 = j % W;
+                    int y2 = j / W;
+                    if (b.a[y2][x2]!= 0) {
+                        pair z=(pair){x1, y1,x2,y2 };
+                        board copy=b;
+                        if (take(&copy,z)) {
+                            bool seen=false;
+                            /* 用循环条件控制，不用 break */
+                            for (int k=0; k<back&&!seen;++k){
+                                if (same(&copy,&queue[k])){
+                                    seen=true;
+                                }
+                            }
+                            if (!seen&&back<MAXLIST){
+                                queue[back++]=copy;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+bool take(board* p, pair z)
+{
+    int c1=z.x1,r1=z.y1,c2=z.x2,r2=z.y2;
+    //确保in board
+    if(!in(r1,c1)||!in(r2,c2)){
+        return false;
+    }
+    //不能是同一格
+    if(r1==r2&&c1==c2){
+        return false;
+    }
+    //两点
+    char d1=p->a[r1][c1];
+    char d2=p->a[r2][c2];
+    //不能是空格
+    if(d1==0||d2==0){
+        return false;
+    }
+    //满足匹配条件
+    if(!match(d1,d2)){
+        return false;
+    }
+    int dr=r2-r1;
+    int dc=c2-c1;
+    //如果8连通，则可以；否则必须满足path函数
+    if(!ad8(dr,dc)&&!path(p,r1,c1,r2,c2)){
+        return false;
+    }
+    p->a[r1][c1]=0;
+    p->a[r2][c2]=0;
+    return true;
+}
+board randfill(int n)
+{
+    board b;
+    my_srand((unsigned int)n);   // 用自己实现的 RNG，保证和 glibc 一样
+    for (int r = 0; r < H; ++r) {
+        for (int c = 0; c < W; ++c) {
+            b.a[r][c] = (unsigned char)(my_rand() % 9 + 1);
+        }
+    }
+    return b;
+}
+void test(void)
+{
+    board b=randfill(10);
+    assert(!take(&b,(pair){-1,0,0,0}));
+    assert(!take(&b,(pair){0,-1,0,0}));
+    assert(!take(&b,(pair){0,0,W,0}));
+    assert(!take(&b,(pair){0,0,0,H}));
+    board b1=randfill(111);
+    board b2=randfill(112);
+    assert(!same(&b1,&b2));
+    board fail={{
+        {1,2,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0}
+    }};
+    assert(!take(&fail,(pair){0,0,1,0}));
+    board b3={{
+        {4,4,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0}
+    }};
+    assert(take(&b3,(pair){0,0,1,0}));
+    board b4={{
+        {7,0,0,0,0},
+        {7,0,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0}
+    }};
+    assert(take(&b4,(pair){0,0,0,1}));
+    board b5={{
+        {6,0,0,0,0},
+        {0,6,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0}
+    }};
+    assert(take(&b5,(pair){0,0,1,1}));
+    board b6={{
+        {3,0,5,0,3},
+        {0,0,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0}
+    }};
+    assert(!take(&b6,(pair){0,0,4,0}));
+    board b7={{
+        {9,1,0,0,0},
+        {5,5,0,0,0},
+        {2,8,0,0,0},
+        {0,0,0,0,0}
+    }};
+    assert(take(&b7,(pair){0,0,1,0}));
+    assert(take(&b7,(pair){0,1,1,1}));
+    assert(take(&b7,(pair){0,2,1,2}));
+    assert(check(&b7));
+    board empty={0};
 
+————
+
+#pragma once
+
+#define H 4
+#define W 5
+#define MAXLIST 100000
+
+typedef struct {
+    unsigned char a[H][W];
+} board;
+
+    assert(check(&empty));
+    (void)solve(500);
+    (void)solve(1);
+}
