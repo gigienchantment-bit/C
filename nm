@@ -1,5 +1,8 @@
 gcc nm.c driver.c -Wall -Wextra -std=c99 -o nm
 ./nm
+
+zip nm.zip nm.c mydefs.h
+./check.sh
 --
 #include "nm.h"  
 #include <stdlib.h> 
