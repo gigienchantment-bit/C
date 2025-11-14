@@ -1,8 +1,7 @@
 make extension
 ./extension   # 只要安静运行，无输出、无 assertion，就说明 OK
-[hy25163@it106166 num]$ make extension
-make: *** No rule to make target 'ext_nm.h', needed by 'extension'.  Stop.
-[hy25163@it106166 num]$ make extension
+
+zip nm.zip nm.c mydefs.h ext.c ext_mydefs.h
 ————
 #pragma once
 
