@@ -2,6 +2,27 @@ make extension
 ./extension   # 只要安静运行，无输出、无 assertion，就说明 OK
 
 zip nm.zip nm.c mydefs.h ext.c ext_mydefs.h
+
+[hy25163@it106166 num]$ zip nm.zip nm.c mydefs.h ext.c ext_mydefs.h
+updating: nm.c (deflated 73%)
+updating: mydefs.h (deflated 16%)
+  adding: ext.c (deflated 60%)
+  adding: ext_mydefs.h (deflated 22%)
+[hy25163@it106166 num]$ ./check.sh
+SUCCESS: Found 4 files in nm.zip as expected, with extension
+SUCCESS: Made nm and nm_d with gcc okay
+SUCCESS: Made extension with gcc okay
+rm -f nm nm_d extension
+SUCCESS: Made nm and nm_d with clang okay
+ERROR: Failed to make extension with clang? See output.txt for details.
+[hy25163@it106166 num]$ ./check.sh
+SUCCESS: Found 4 files in nm.zip as expected, with extension
+SUCCESS: Made nm and nm_d with gcc okay
+SUCCESS: Made extension with gcc okay
+rm -f nm nm_d extension
+SUCCESS: Made nm and nm_d with clang okay
+ERROR: Failed to make extension with clang? See output.txt for details.
+[hy25163@it106166 num]$ 
 ————
 #pragma once
 
