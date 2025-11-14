@@ -1,0 +1,236 @@
+#include "ext_nm.h"
+#include <string.h>   // memcmp
+
+/* ========= 工具函数 ========= */
+
+/* (r,c) 是否在棋盘内 */
+static bool inb(int r, int c)
+{
+    return r >= 0 && r < H && c >= 0 && c < W;
+}
+
+/* 两个数字是否“配对”：相等或和为 10，且都非 0 */
+static bool match_vals(int v1, int v2)
+{
+    if (v1 == 0 || v2 == 0) return false;
+    return (v1 == v2) || (v1 + v2 == 10);
+}
+
+
+
+/* 直线（横/竖/对角线）中间是否全是 0 */
+static bool clear_line(const board *b, int r1, int c1, int r2, int c2)
+{
+    int dr = r2 - r1;
+    int dc = c2 - c1;
+
+    if (dr == 0 && dc == 0) {
+        return false;
+    }
+
+    /* 必须在 8 个方向之一：同一行、同一列、或 45° 斜线 */
+    int adr = (dr > 0) ? dr : -dr;
+    int adc = (dc > 0) ? dc : -dc;
+    if (!(dr == 0 || dc == 0 || adr == adc)) {
+        return false;
+    }
+
+    int step_r = (dr > 0) - (dr < 0);  /* -1, 0, 1 */
+    int step_c = (dc > 0) - (dc < 0);  /* -1, 0, 1 */
+    int steps  = (adr > adc ? adr : adc);  /* 至少为 1 */
+
+    /* 检查两端之间的所有格子（不包括终点） */
+    int r = r1 + step_r;
+    int c = c1 + step_c;
+    for (int k = 1; k < steps; ++k, r += step_r, c += step_c) {
+        if (b->a[r][c] != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* 是否全空盘 */
+static bool is_final(const board *b)
+{
+    for (int r = 0; r < H; ++r) {
+        for (int c = 0; c < W; ++c) {
+            if (b->a[r][c] != 0) return false;
+        }
+    }
+    return true;
+}
+
+/* 两个盘面是否完全一致 */
+static bool same_board(const board *a, const board *b)
+{
+    return memcmp(a, b, sizeof(board)) == 0;
+}
+
+/* ========= 题目要求的三个核心函数 ========= */
+
+/* 按给定 seed 生成棋盘（行优先填充，rand()%9+1） */
+board randfill(int n)
+{
+    board b;
+
+    /* 如果你在 nm.c 里用了自定义 my_srand/my_rand，
+       想在 Mac 上得到和 lab 一样的棋盘，可以改成：
+       
+         my_srand((unsigned int)n);
+         ...
+         b.a[r][c] = (unsigned char)(my_rand() % 9 + 1);
+    */
+
+    srand((unsigned int)n);
+    for (int r = 0; r < H; ++r) {
+        for (int c = 0; c < W; ++c) {
+            b.a[r][c] = (unsigned char)(rand() % 9 + 1);
+        }
+    }
+    return b;
+}
+
+/* 尝试在盘面 p 上消去一对格子 z，成功返回 true 并把它们设为 0 */
+bool take(board* p, pair z)
+{
+    int x1 = z.x1;
+    int y1 = z.y1;
+    int x2 = z.x2;
+    int y2 = z.y2;
+
+    /* 坐标合法且不能是同一格 */
+    if (!inb(y1, x1) || !inb(y2, x2)) return false;
+    if (x1 == x2 && y1 == y2) return false;
+
+    unsigned char v1 = p->a[y1][x1];
+    unsigned char v2 = p->a[y2][x2];
+
+    /* 数值必须能配对 */
+    if (!match_vals(v1, v2)) return false;
+
+    /* 必须“相邻或在一条直线上，中间没有别的数字”。
+       相邻的情况这里也包含在 clear_line 中，因为中间没有格子。 */
+    if (!clear_line(p, y1, x1, y2, x2)) return false;
+
+    /* 真正消子 */
+    p->a[y1][x1] = 0;
+    p->a[y2][x2] = 0;
+    return true;
+}
+
+/* BFS 搜索是否存在一条完整消光的序列 */
+bool solve(int seed)
+{
+    board queue[MAXLIST];
+    int front = 0;
+    int back  = 0;
+
+    /* 初始盘面 */
+    queue[back++] = randfill(seed);
+
+    while (front < back) {
+        board cur = queue[front++];
+
+        /* 找到全空盘，说明可解 */
+        if (is_final(&cur)) {
+            return true;
+        }
+
+        /* 枚举所有 pair(i, j)，尝试一次消子 */
+        for (int i = 0; i < H * W; ++i) {
+            int x1 = i % W;
+            int y1 = i / W;
+            unsigned char v1 = cur.a[y1][x1];
+            if (v1 == 0) continue;
+
+            for (int j = i + 1; j < H * W; ++j) {
+                int x2 = j % W;
+                int y2 = j / W;
+                unsigned char v2 = cur.a[y2][x2];
+                if (v2 == 0) continue;
+
+                /* 先用值快速剪枝，再复制盘面，避免无效拷贝 */
+                if (!match_vals(v1, v2)) continue;
+
+                pair z = (pair){x1, y1, x2, y2};
+
+                board next = cur;
+                if (!take(&next, z)) {
+                    continue;  // 线不通或中间被挡
+                }
+
+                /* 查重：如果已经见过这个盘面，就不要再次入队 */
+                bool seen = false;
+                for (int k = 0; k < back; ++k) {
+                    if (same_board(&next, &queue[k])) {
+                        seen = true;
+                        break;
+                    }
+                }
+                if (seen) continue;
+
+                /* 队列满了就保守地认为“不可解”，防止数组越界 */
+                if (back >= MAXLIST) {
+                    return false;
+                }
+
+                queue[back++] = next;
+            }
+        }
+    }
+
+    /* 搜完所有状态都没找到全空盘，则认为不可解 */
+    return false;
+}
+
+/* ========= 自测函数 ========= */
+
+void test(void)
+{
+    /* 这些测试基本和老师的 driver 一致，用来检查逻辑 */
+
+    board b = randfill(6);
+    // 18866
+    // 62725
+    // 32795
+    // 34448
+
+    // 8 8 Horiz
+    assert(take(&b,  (pair){1,0,2,0}));
+    // 2 2 Vertical 
+    assert(take(&b,  (pair){1,1,1,2}));
+    assert(take(&b,  (pair){0,2,2,2}));
+    // 6 7 Fails
+    assert(!take(&b, (pair){3,0,2,1}));
+
+    // 反过来再测一次
+    b = randfill(6);
+    assert(take(&b,  (pair){2,0,1,0}));
+    assert(take(&b,  (pair){1,2,1,1}));
+    assert(take(&b,  (pair){2,2,0,2}));
+    assert(!take(&b, (pair){2,1,3,0}));
+
+    // 其他一些检查
+    b = randfill(6);
+    assert(take(&b,  (pair){1,0,2,0}));
+    assert(!take(&b, (pair){0,0,3,2}));
+
+    b = randfill(15);
+    // 37499
+    // 45428
+    // 58362
+    // 79892
+    assert(take(&b,  (pair){2,1,3,2}));
+    assert(!take(&b, (pair){1,2,4,2}));
+
+    /* 检查 solve(seed) 结果是否符合题目给的示例 */
+    assert( solve(3648));
+    assert( solve(1762));
+    assert( solve( 924));
+    assert( solve( 363));
+    assert(!solve(   6));
+    assert(!solve(2000));
+    assert(!solve( 666));
+}
+
