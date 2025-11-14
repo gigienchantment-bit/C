@@ -1,3 +1,6 @@
+make extension
+./extension   # 只要安静运行，无输出、无 assertion，就说明 OK
+————
 #pragma once
 
 #include <stdbool.h>
